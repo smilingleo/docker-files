@@ -1,0 +1,21 @@
+#! /bin/bash
+
+NAME='scala'
+
+function parse_options() {
+    while getopts "n:h" opt; do
+        case $opt in
+        n)
+	    NAME=$OPTARG
+          ;;
+        h)
+	    echo 'dscala -n <container name>'
+            exit 0
+          ;;
+       esac
+    done
+}
+
+parse_options $@
+
+sudo docker run -it --name $NAME -v ~/workspace:/workspace -v ~/github:/github lukasz/docker-scala:v2 bash

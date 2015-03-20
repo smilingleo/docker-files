@@ -1,0 +1,7 @@
+#! /bin/bash
+
+##
+## connect to a running docker container.
+## just like to ssh into it.
+
+sudo nsenter -m -i -n -u -p -t `sudo docker inspect -f {{.State.Pid}} $1`

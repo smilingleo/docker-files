@@ -1,0 +1,5 @@
+#! /bin/bash
+
+#
+# remove all docker containers
+sudo docker ps -a | awk '{ print "sudo docker rm " $1}' | tail -n +2 | bash

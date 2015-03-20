@@ -1,0 +1,76 @@
+#!/bin/bash
+
+##
+## To run a docker image with:
+## 1. nameserver-aware
+## 2. mount worksapce and github
+##
+
+function check_root() {
+    if [[ "$USER" != "root" ]]; then
+        echo "please run as: sudo $0"
+        exit 1
+    fi
+}
+
+function print_help() {
+    echo "usage: $0 -i <image> [-v <data_directory> -l <link>]"
+    echo ""
+    echo "  image:    your image"
+    echo ""
+}
+
+function parse_options() {
+    while getopts "i:v:h:l:" opt; do
+        case $opt in
+        i)
+            image_name=$(echo "$OPTARG" | awk -F ":" '{print $1}')
+            image_version=$(echo "$OPTARG" | awk -F ":" '{print $2}') 
+          ;;
+        h)
+            print_help
+            exit 0
+          ;;
+        v)
+            VOLUME_MAP=$OPTARG
+          ;;
+        l)
+	    LINKING="--link "$OPTARG
+	  ;;
+        esac
+    done
+
+    if [ ! "$VOLUME_MAP" == "" ]; then
+        echo "data volume chosen: $VOLUME_MAP"
+        VOLUME_MAP="-v $VOLUME_MAP"
+    fi
+}
+
+check_root
+
+if [[ "$#" -eq 0 ]]; then
+    print_help
+    exit 1
+fi
+
+parse_options $@
+
+SHELL_HOST="docker$RANDOM"
+
+NAMESERVER_IP=`sudo docker inspect nameserver | grep IPAddress | awk -F \" '{print $4}'`
+
+# have to run it as daemon, otherwise, we can not get its ip address afterwards and notify nameserver
+CONTAINER_ID=$(sudo docker run -it -d --dns ${NAMESERVER_IP} -v ~/workspace:/workspace -v ~/github:/github -h ${SHELL_HOST} --link master:master ${LINKING} ${image_name}:${image_version} bash)
+
+# wait for a while to let above container aquires an ip address
+sleep 2
+
+SHELL_IP=`sudo docker inspect ${CONTAINER_ID} | grep IPAddress | awk -F \" '{print $4}'`
+
+DNS_DIR=$(sudo docker inspect nameserver | grep dnsdir | awk '{print $2}' | tr -d '":')
+
+DNS_FILE="${DNS_DIR}/0hosts"
+
+sudo echo "address=\"/${SHELL_HOST}/${SHELL_IP}\"" >> $DNS_FILE
+
+echo "sudo docker attach ${CONTAINER_ID}"
