@@ -36,6 +36,9 @@ ADD src/start.sh /usr/local/bin/start
 # See https://groups.google.com/forum/#!msg/docker-dev/8TM_jLGpRKU/dewIQhcs7oAJ
 RUN rm -f /etc/security/limits.d/cassandra.conf
 
+# Grant write access so that Spark won't complain
+RUN mkdir -p /var/lib/spark
+RUN chmod -R 777 /var/lib/spark/
 
 EXPOSE 7199 7000 7001 9160 9042
 EXPOSE 22 8012 61621
